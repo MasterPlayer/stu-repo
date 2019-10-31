@@ -36,6 +36,7 @@ end delay_register;
 architecture Behavioral of delay_register is
 
 	signal 	delay_reg : std_logic_vector ( 3 downto 0 ) := (others => '0');
+    -- другие варианты описаний
 	--signal 	delay_reg : std_logic_vector ( 3 downto 0 ) := "0000";
 	--signal 	delay_reg : std_logic_vector ( 3 downto 0 ) := x"0";
 	--signal 	delay_reg : std_logic_vector ( 3 downto 0 );
