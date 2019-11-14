@@ -71,7 +71,30 @@ architecture Behavioral of tb_preamble_searcher_x8 is
     end component;
 
     signal  UNPREAMBLED_DATA_OUT :           std_logic                       ;
+    signal  UNSYNCED_DATA_OUT :           std_logic                       ;
 
+
+    component sync_seq_det_x8
+        port(   
+            CLK         :   in      std_Logic                       ;
+            DATA_IN     :   in      std_logic                       ;
+            START       :   in      std_logic                       ;
+            DVO         :   out     std_Logic                       
+        );
+    end component;
+
+    signal  dvo_seq     :           std_Logic                       ;
+
+    component cmd_processor_x8
+        port(
+            CLK         :   in      std_logic               ;
+            DATA_IN     :   in      std_logic               ;
+            START       :   in      std_logic               ;
+            HAS_CMD     :   out     std_Logic                
+        );
+    end component;
+
+    signal  has_cmd     :           std_Logic               ;
 
     constant clk_period : time := 10 ns;
 
@@ -97,13 +120,26 @@ begin
             DVO_OUT     =>  DVO_OUT          
         );
 
+    -- input stream 
+    -- [preamble] : 10101010
+    -- [syncword] : 11001100
+    -- [cmd]      : 01100110
+
 
     data_in_processing : process(CLK)
     begin
         if CLK'event AND CLK = '1' then 
-            case i is 
+            case i is
+                when  92 => DATA_IN <= '0';
+                when  93 => DATA_IN <= '1';
+                when  94 => DATA_IN <= '1';
+                when  95 => DATA_IN <= '1'; 
+                when  96 => DATA_IN <= '1';
+                when  97 => DATA_IN <= '1';
+                when  98 => DATA_IN <= '1';
+                when  99 => DATA_IN <= '0';
                 when 100 => DATA_IN <= '0';
-                when 101 => DATA_IN <= '0';
+                when 101 => DATA_IN <= '1';
                 when 102 => DATA_IN <= '0';
                 when 103 => DATA_IN <= '0';
                 when 104 => DATA_IN <= '1'; --preamble
@@ -128,7 +164,7 @@ begin
                 when 121 => DATA_IN <= '1'; --code
                 when 122 => DATA_IN <= '1'; --code
                 when 123 => DATA_IN <= '0'; --code
-                when 124 => DATA_IN <= '1'; --code
+                when 124 => DATA_IN <= '0'; --code
                 when 125 => DATA_IN <= '1'; --code
                 when 126 => DATA_IN <= '1'; --code
                 when 127 => DATA_IN <= '0'; --code
@@ -143,15 +179,14 @@ begin
     -- здесь все что нам нужно - это задержать значение на столько, чтобы отрезать преамбулу и оставить 
     --оставшуюся часть данных для передачи ее на другой модуль для дальнейшего разбора 
 
-    preamble_det_x8_long_inst : preamble_det_x8_long
-        port map (
-            CLK         =>  CLK                     ,
-            DATA_IN     =>  DATA_IN                 ,
---            DATA_OUT    =>  LONG_DATA_OUT           ,
-            DVO_OUT     =>  LONG_DVO_OUT             
-        );
+    --preamble_det_x8_long_inst : preamble_det_x8_long
+    --    port map (
+    --        CLK         =>  CLK                     ,
+    --        DATA_IN     =>  DATA_IN                 ,
+    --        DVO_OUT     =>  LONG_DVO_OUT             
+    --    );
 
-    delay_reg_cfg_inst : delay_reg_cfg
+    delay_reg_cfg_inst_unpreambled : delay_reg_cfg
         generic map (
             DELAY =>  2
         )
@@ -159,6 +194,33 @@ begin
             CLK         =>  CLK                     ,
             DATA_IN     =>  DATA_IN                 ,
             DATA_OUT    =>  UNPREAMBLED_DATA_OUT
+        );
+
+    sync_seq_det_x8_inst : sync_seq_det_x8
+        port map (   
+            CLK         =>  CLK                     ,
+            DATA_IN     =>  UNPREAMBLED_DATA_OUT    ,
+            START       =>  DVO_OUT                 ,
+            DVO         =>  dvo_seq                 
+        );
+
+    delay_reg_cfg_inst_unsynced : delay_reg_cfg
+        generic map (
+            DELAY =>  2
+        )
+        port map (
+            CLK         =>  CLK                     ,
+            DATA_IN     =>  UNPREAMBLED_DATA_OUT    ,
+            DATA_OUT    =>  UNSYNCED_DATA_OUT
+        );
+
+
+    cmd_processor_x8_inst : cmd_processor_x8
+        port map (
+            CLK         =>  CLK                     ,
+            DATA_IN     =>  UNSYNCED_DATA_OUT       ,
+            START       =>  dvo_seq                 ,
+            HAS_CMD     =>  has_cmd                 
         );
 
 
