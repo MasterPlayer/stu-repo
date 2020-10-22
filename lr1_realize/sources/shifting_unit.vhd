@@ -21,7 +21,6 @@ entity shifting_unit is
 end shifting_unit;
 
 
-
 architecture Behavioral of shifting_unit is
     
     -- Сигналы для реализации операции сдвига. По умолчанию задаем их по разрядности сигнала.
